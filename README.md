@@ -74,6 +74,13 @@ Workflow Diagram (Detailed Transcription Workflow):
 
 ![image](https://github.com/user-attachments/assets/89fcc628-a779-4c9d-8a19-f895d6207925)
 
+Example Google Sheets:
+
+![image](https://github.com/user-attachments/assets/8f876b1f-b51c-4f33-9944-d8ed1d8d6550)
+
+The Airtable Database:
+![image](https://github.com/user-attachments/assets/b13610aa-9705-4c04-83b1-c378ea8ce5a3)
+
 
 Description:
 
@@ -86,6 +93,43 @@ Summary Generation (Gemini Chat/LLM Node): As the last answer arrives (determine
 Store Summary (Google Sheet): The generated summary is then taken and stored in the designated Google Sheet.
 
 Temporary Data Handling: Answers are stored temporarily in Airtable and are cleared after the workflow completes. Crucially, instead of deleting records, the workflow updates the column with a blank string. ✅ This prevents changes to the record ID, which is static in the n8n flow, ensuring consistent operation without manual record ID updates.
+
+
+Setup and Credentials 🔑
+
+To ensure these workflows function correctly, you will need to configure the necessary credentials for each service. Here's a breakdown of what you'll need:
+
+Google Sheets Node:
+
+Credential Type: OAuth2 (or API Key if preferred for read-only access).
+Required Scope: https://www.googleapis.com/auth/spreadsheets (for read/write access to your sheets).
+Setup: Authenticate your Google account within n8n. Ensure the service account (if used) or your personal account has access to the specific Google Sheet.
+
+Twilio Node (HTTP Request):
+
+Credential Type: API Key (Account SID and Auth Token).
+Required Details:
+Account SID: Your Twilio Account SID, found on your Twilio Console dashboard.
+Auth Token: Your Twilio Auth Token, also found on your Twilio Console dashboard.
+Setup: Create a new Twilio credential in n8n and input your Account SID and Auth Token.
+
+Airtable Node:
+
+Credential Type: API Key.
+Required Details:
+API Key: Your Airtable API Key, which can be generated in your Airtable account settings.
+Base ID: The ID of your Airtable Base where the temporary answers will be stored.
+Table Name: The name of the table within your Base.
+Setup: Create a new Airtable credential in n8n using your API Key. You'll specify the Base ID and Table Name directly in the Airtable nodes within the workflow.
+
+Gemini Chat (LLM) Node:
+
+Credential Type: API Key.
+Required Details:
+API Key: An API key for the Google Gemini API. You can obtain this from the Google AI Studio or Google Cloud Console.
+Setup: Create a new credential for the Gemini Chat node in n8n and provide your API Key.
+
+
 
 Potential Enhancements and Suggestions ✨
 This framework is a foundational example. Here are some suggestions for expanding it into a more robust and dynamic agent:
