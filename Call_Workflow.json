@@ -1,0 +1,825 @@
+{
+  "name": "Whole Call Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-question",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -15100,
+        -1420
+      ],
+      "id": "63761366-d1f4-4374-851c-4ed3e05ed859",
+      "name": "Webhook",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the question number from the URL query parameter\nconst questionNumber =$input.first().json.query.question_number ;\nconst rowNumber = $input.first().json.query.row_number;\n\nlet question;\n\n// Select the question based on the question_number\nswitch (questionNumber) {\n  case '1':\n    question = \"How are you doing?\";\n    break;\n  case '2':\n    question = \"Have you reached the office safely?\";\n    break;\n  case '3':\n    question = \"Did you clock in?\";\n    break;\n  default:\n    question = \"You have completed all questions.\";\n}\n\nconst twiml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say>${question}</Say>\n  <Record\n    action=\"https://your-domain.com/webhook/call-continue?question_number=${questionNumber}&amp;row_number=${rowNumber}\"\n    transcribe=\"true\"\n    transcribeCallback=\"https://your-domain.com/webhook/transcription-data?question_number=${questionNumber}&amp;row_number=${rowNumber}\"\n    maxLength=\"6\"\n    playBeep=\"true\"\n  />\n</Response>\n`;\n\nreturn [\n  {\n    json: {\n      twiml: twiml,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -14880,
+        -1420
+      ],
+      "id": "4bb5e2f1-c843-4ccb-a9c7-3862948522e7",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.twiml }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -14660,
+        -1420
+      ],
+      "id": "e4cfec1d-2bfd-42d7-beea-f59e780379fd",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the webhook data (single item)\nconst currentQuestionNumber = parseInt($input.first().json.query.question_number, 10);\nconst employeeRowNumber = $input.first().json.query.row_number;\n\n// --- Define total questions and calculate the next question number ---\nconst totalQuestions = 3; // Adjust this number for your total questions\nconst nextQuestionNumber = currentQuestionNumber + 1;\nlet twiml;\n\n// --- Construct TwiML based on whether there are more questions or the call should end ---\nif (nextQuestionNumber <= totalQuestions) {\n  // --- More questions: Redirect to the next question webhook ---\n  // Hardcoded base URL for the next question webhook (adjust to your production URL if needed)\n  const n8nWebhookBaseUrl = 'https://your-domain.com/webhook/call-question';\n  // Construct the URL manually. The '&' for query parameters must be escaped as '&amp;' in XML.\n  const nextQuestionUrl = `${n8nWebhookBaseUrl}?question_number=${nextQuestionNumber}&amp;row_number=${employeeRowNumber}`;\n  twiml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response><Redirect>${nextQuestionUrl}</Redirect></Response>`;\n} else {\n  // --- No more questions: Say goodbye and hang up ---\n  twiml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response><Say>Thank you for your responses. Goodbye.</Say><Hangup/></Response>`;\n}\n\n// --- Return the generated TwiML for the Respond to Webhook node ---\nreturn [{\n  json: {\n    twiml: twiml\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -13300,
+        -1400
+      ],
+      "id": "3fa56994-1091-492f-bd8a-510b2a7d6ad0",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-continue",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -13520,
+        -1400
+      ],
+      "id": "1f8bb901-09d2-4384-a708-2f08409397af",
+      "name": "Webhook1",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.twiml }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -13080,
+        -1400
+      ],
+      "id": "9fd95d1e-13c4-4560-9eb6-e01c78a36c26",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Contacts",
+          "cachedResultUrl": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d//edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "is_processed": "={{ $json.is_processed }}",
+            "summary": "={{ $json.text }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "From_Number",
+              "displayName": "From_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "To_Number",
+              "displayName": "To_Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Q1",
+              "displayName": "Q1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Q2",
+              "displayName": "Q2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Q3",
+              "displayName": "Q3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_processed",
+              "displayName": "is_processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -13160,
+        -520
+      ],
+      "id": "2e185f52-cda0-4bdc-a0bd-793ad7d9ec55",
+      "name": "Update row in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "transcription-data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -15280,
+        -540
+      ],
+      "id": "68d7331e-7f51-4d8d-be17-25ee628278c4",
+      "name": "Webhook2",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "operation": "deleteRecord",
+        "base": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Calling_Agent_Base",
+          "cachedResultUrl": "https://airtable.com/app"
+        },
+        "table": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://airtable.com/app11bLmXi6AjfpJk/"
+        },
+        "id": ""
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -12960,
+        -520
+      ],
+      "id": "c0bd81e3-9d4c-42a7-85c5-88db8f38bc1c",
+      "name": "Delete a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37b2a827-87de-485c-b8b3-b290b1e6d8bf",
+              "leftValue": "={{ $json.is_processed }}",
+              "rightValue": "no",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -14280,
+        -560
+      ],
+      "id": "97505f5f-3e7d-4763-8d83-e2322baad5ae",
+      "name": "If",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -13560,
+        -520
+      ],
+      "id": "484b63f3-36db-463e-b858-2bc57cddd8b6",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a workplace status reporter. Review the following employee check-in responses. Based on the input, provide a professional summary addressing:\n1. Employee's general well-being.\n2. Their office attendance status.\n3. Confirmation of clock-in and time.\n4. Any relevant additional notes.\n\nSummarize this into a concise paragraph suitable for management.\n\nCase: If the responses are less or not there at all, give a heads up that the responses were not recorded properly.\n\nEmployee Responses:\n\n{{ $json.Answer }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Act as a summary expert"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -13940,
+        -420
+      ],
+      "id": "01e47054-3c53-4472-b2fb-cf094b467294",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -13860,
+        -240
+      ],
+      "id": "7e49b3a5-8160-4a2e-b22e-0d8b5c227f96",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Calling_Agent_Base",
+          "cachedResultUrl": "https://airtable.com/app11bLmXi6AjfpJk"
+        },
+        "table": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://airtable.com/app11bLmXi6AjfpJk/tblHBuPwHslrX0EPE"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Answer": "={{ $json.Answer }}",
+            "id": ""
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Answer",
+              "displayName": "Answer",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -14020,
+        -780
+      ],
+      "id": "19cc5db4-61b9-4fd5-9ce7-8fc0df8201c8",
+      "name": "Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Calling_Agent_Base",
+          "cachedResultUrl": "https://airtable.com/app11bLmXi6AjfpJk"
+        },
+        "table": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://airtable.com"
+        },
+        "id": "",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -14980,
+        -700
+      ],
+      "id": "e0cac962-8051-4493-9586-1c30845a5188",
+      "name": "Get a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -14720,
+        -560
+      ],
+      "id": "7c9c1d53-f504-4786-a2a2-04cda43acd99",
+      "name": "Merge1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ensure both inputs are available: existing record (from Airtable) and new webhook data\nif ($input.all().length < 2) {\n    throw new Error('Expected at least two inputs: existing Airtable record and webhook data.');\n}\n\n// Get the existing record from Airtable (first item in the array)\nconst existingRecord = $input.all()[0].json;\n// Assuming the field in Airtable is named 'Answer' for the combined string\nconst existingCombinedAnswer = existingRecord.Answer || \"\"; // Initialize to empty string if null/undefined\n\n// Get the webhook data (second item in the array)\nconst webhookData = $input.all()[1].json;\nconst transcriptionText = webhookData.body.TranscriptionText || \"\";\nconst questionNumber = parseInt(webhookData.query.question_number, 10);\nconst rowNumber = parseInt(webhookData.query.row_number, 10);\n\n// Validate that we have the essential webhook data\nif (!transcriptionText || isNaN(questionNumber) || isNaN(rowNumber)) {\n    throw new Error('Missing required transcription text, valid question_number, or valid row_number from webhook.');\n}\n\n// Combine existing answer with new transcription\nlet newCombinedAnswer;\nif (existingCombinedAnswer) {\n    // If there is existing answer, add new one with \\n separator\n    // Use actual '\\n' for newline, not '\\\\n' which would literally store \"\\n\"\n    newCombinedAnswer = existingCombinedAnswer + \"\\n\" + transcriptionText.trim();\n} else {\n    // If no existing answer, just use the new transcription\n    newCombinedAnswer = transcriptionText.trim();\n}\n\n// Create output data for updating the Airtable record\nconst outputData = {\n    row_number: rowNumber, // This might be used for identification, but 'id' is typical for Airtable updates\n    Answer: newCombinedAnswer, // Ensure this matches your Airtable field name for combined answers\n    // Initialize is_processed to \"no\" by default for each update\n    is_processed: \"no\" \n};\n\n// If this is question 3, mark as processed and potentially ready for summarization\nif (questionNumber === 3) {\n    outputData.is_processed = \"yes\";\n}\n\n// Return the output. This output will then be passed to your Airtable 'Update Record' node.\nreturn [{ json: outputData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -14500,
+        -560
+      ],
+      "id": "ccd07bb8-67da-4f7b-9e56-cc5e20bf2004",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This code node expects an array of two JSON objects as input.\n// The first object typically contains data from the initial processing (e.g., combined answers).\n// The second object typically contains the summary text from the LLM.\n\n// Ensure there are at least two input items\nif ($input.all().length < 2) {\n    throw new Error('Expected at least two input items to combine.');\n}\n\n// Get the first JSON object from the input array\nconst firstObject = $input.all()[0].json;\n\n// Get the second JSON object from the input array\nconst secondObject = $input.all()[1].json;\n\n// Create a new JSON object by combining properties from both input objects.\n// We use the spread operator (...) to merge properties.\n// The 'text' field from the second object is renamed to 'summary_text' for clarity.\nconst combinedOutput = {\n    ...firstObject,\n    text: secondObject.text // Renaming 'text' to 'summary_text'\n};\n\n// Return the single combined JSON object wrapped in an array,\n// as is standard for many node-based workflow tools.\nreturn [{ json: combinedOutput }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -13360,
+        -520
+      ],
+      "id": "38ea3ae7-ae5d-46da-91de-8335f4d434b0",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "content": "## Call Question Workflow\nAsks dynamic questions based on whatever code you provide.\nJust give the list of questions in the code node and the calling agent will ask these questions turn by turn.\n",
+        "height": 380,
+        "width": 840
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -15260,
+        -1560
+      ],
+      "id": "095f12a8-7d0f-49e0-90eb-aaca59f3c904",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Question Update Workflow\nUpdates the question number and tells the agent to ask the next question.\njust pass the url of the \"call question\" webhook to the code node and it will hit the question asking webhook with the next question request.\n",
+        "height": 380,
+        "width": 840
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -13660,
+        -1560
+      ],
+      "id": "463b41ed-10aa-4452-b4ad-cc248bb2ad83",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Conversation Summary creation and Saving Workflow\nReceives the answers to the questions one by one and saves them temporarily in an AirTable schema.\nOnce all answers have been received, it generates a summary using Gemini 2.5 Flash model and saves it to the designated sheets.",
+        "height": 780,
+        "width": 2900
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -15480,
+        -840
+      ],
+      "id": "56054a0a-fa80-4a5a-98f9-c7a1cde9997b",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {
+    "Webhook2": [
+      {
+        "json": {
+          "headers": {
+            "host": "your-domain.com",
+            "accept-encoding": "gzip, br",
+            "i-twilio-idempotency-token": "05f2e8c0-a6b0-4766-87e3-8fa975d8d3ee",
+            "x-twilio-signature": "U9FGyouH2DDxAYY+iG4ZbjKUtUU=",
+            "user-agent": "TwilioProxy/1.1",
+            "x-home-region": "us1",
+            "cf-ray": "95962213bcbac970-IAD",
+            "accept": "*/*",
+            "x-forwarded-for": "18.204.231.242, 172.68.245.143",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "x-forwarded-proto": "https",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "18.204.231.242",
+            "cf-ipcountry": "US",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "x-forwarded-host": "your-domain.com",
+            "x-forwarded-server": "your-domain.com",
+            "content-length": "937",
+            "connection": "Keep-Alive"
+          },
+          "params": {},
+          "query": {
+            "question_number": "3",
+            "row_number": "2"
+          },
+          "body": {
+            "ApiVersion": "2010-04-01",
+            "TranscriptionType": "fast",
+            "TranscriptionUrl": "https://api.twilio.com/2010-04-01/Accounts/[SID]/Recordings//Transcriptions/",
+            "TranscriptionSid": "",
+            "Called": "Your Number",
+            "RecordingSid": "",
+            "CallStatus": "completed",
+            "RecordingUrl": "https://api.twilio.com/2010-04-01/Accounts//Recordings/",
+            "From": "[TWILIO NUMBER]",
+            "Direction": "outbound-api",
+            "url": "https://your-domain.com/webhook/transcription-data?question_number=3&row_number=2",
+            "AccountSid": "",
+            "TranscriptionText": "Thank logged in in m.",
+            "Caller": "+",
+            "TranscriptionStatus": "completed",
+            "CallSid": "",
+            "To": "+",
+            "ForwardedFrom": "+"
+          },
+          "webhookUrl": "https://your-domain.com/webhook/transcription-data",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Delete a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Get a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a record": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e941cfcb-f382-4044-bb12-9797e93e04e9",
+  "meta": {
+    "instanceId": "26a3dbcf8780b0254a532699c9702cca62db224d8711c3594224258f46ba5cd0"
+  },
+  "id": "cAHaRgmA8ZHcKNp1",
+  "tags": []
+}
